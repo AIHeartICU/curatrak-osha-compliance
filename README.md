@@ -1,4 +1,4 @@
-# CuraTrak: Multi-Agent OSHA Compliance System
+# Curatrak: Multi-Agent OSHA Compliance System
 
 A sophisticated multi-agent AI system that helps nutraceutical manufacturers navigate complex OSHA regulations, interpret requirements, and implement compliance measures.
 
@@ -11,7 +11,7 @@ Nutraceutical manufacturers face complex OSHA regulatory challenges:
 
 ## Solution
 
-CuraTrak addresses these challenges through a sophisticated multi-agent AI system:
+Curatrak addresses these challenges through a sophisticated multi-agent AI system:
 
 1. **Document Agent**: Retrieves relevant OSHA regulations using vector search technology
 2. **Analysis Agent**: Interprets regulations specifically for nutraceutical context
@@ -26,8 +26,11 @@ CuraTrak addresses these challenges through a sophisticated multi-agent AI syste
 
 ## Architecture
 
+<img width="649" alt="image" src="https://github.com/user-attachments/assets/3a515fc3-d9aa-42a3-b280-3acf121a91dd" />
+
+
 ### Components
-Built with Azure AI Foundry and Semantic Kernel 1.29.0, CuraTrak features:
+Built with Azure AI Foundry and Semantic Kernel 1.29.0, Curatrak features:
 
 **Document Agent Pipeline**:
 - User query processing with intent recognition
@@ -54,6 +57,9 @@ Built with Azure AI Foundry and Semantic Kernel 1.29.0, CuraTrak features:
 - Error handling and recovery mechanisms
 
 ## Technologies & Implementation
+
+<img width="404" alt="image" src="https://github.com/user-attachments/assets/1afcabc1-ba11-4602-8b14-893a1290ded5" />
+
 
 - **Azure AI Foundry with Semantic Kernel 1.29.0**: Orchestrates a three-agent architecture with specialized roles for document retrieval, analysis, and compliance guidance. Implements advanced conversational threading to maintain context across agent interactions.
 
