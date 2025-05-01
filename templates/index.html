@@ -1,0 +1,1759 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Curatrak OSHA Compliance Assistant</title>
+    <style>
+        :root {
+            --blue: #1B67B2;
+            --green: #568C1C;
+            --cyan: #008b8b;
+            --red: #B54369;
+            --black: #202020;
+            --light-blue: #e6f3ff;
+            --light-green: #e7f5e7;
+            --light-cyan: #e6f7fa;
+        }
+        
+        body { 
+            font-family: Arial, sans-serif; 
+            max-width: 800px; 
+            margin: 0 auto; 
+            padding: 20px;
+            background-color: #f8f9fa;
+            color: var(--black);
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 5px;
+        }
+        
+        .header p {
+            font-size: 16px;
+            color: #555;
+            margin-top: 0;
+        }
+        
+        /* Workflow progress bar */
+        .workflow-progress {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 30px 0;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .workflow-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 25%;
+        }
+        
+        .step-number {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background-color: #f1f3f5;
+            color: #adb5bd;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            margin-bottom: 5px;
+            border: 2px solid #f1f3f5;
+        }
+        
+        .step-label {
+            font-size: 13px;
+            color: #adb5bd;
+        }
+        
+        .progress-line {
+            flex: 1;
+            height: 2px;
+            background-color: #f1f3f5;
+            margin: 0 8px;
+        }
+        
+        /* Active and completed step styling */
+        .workflow-step.active .step-number {
+            background-color: #e6f3ff;
+            color: var(--blue);
+            border-color: var(--blue);
+            box-shadow: 0 0 0 2px rgba(27, 103, 178, 0.2);
+        }
+
+        .workflow-step.complete .step-number {
+            background-color: var(--blue);
+            color: white;
+            border-color: var(--blue);
+        }
+
+        .workflow-step.complete .step-label, 
+        .workflow-step.active .step-label {
+            color: var(--blue);
+            font-weight: 500;
+        }
+
+        /* Active progress line styling */
+        .progress-line.active {
+            background-color: var(--blue);
+            height: 3px; /* Make it slightly thicker */
+            transition: background-color 0.3s ease;
+        }
+
+        /* Improved visual state transitions */
+        .workflow-step, .progress-line {
+            transition: all 0.3s ease-in-out;
+        }
+
+        /* For step 4 "Complete" - special highlighting when active */
+        #step-complete.active .step-number {
+            background-color: #e7f5e7;
+            color: #4caf50;
+            border-color: #4caf50;
+        }
+
+        #step-complete.complete .step-number {
+            background-color: #4caf50;
+            color: white;
+            border-color: #4caf50;
+        }
+
+        #step-complete.active .step-label,
+        #step-complete.complete .step-label {
+            color: #4caf50;
+        }
+
+        /* Agent cards */
+        .agent-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        
+        .agent-card {
+            background: white;
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border: 1px solid #e9ecef;
+            transition: all 0.3s ease;
+        }
+        
+        .agent-card.document-agent {
+            border-left: 3px solid var(--blue);
+        }
+        
+        .agent-card.analysis-agent {
+            border-left: 3px solid var(--green);
+        }
+        
+        .agent-card.compliance-agent {
+            border-left: 3px solid var(--cyan);
+        }
+        
+        .agent-card.active {
+            background-color: rgba(248, 249, 250, 0.8);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+        
+        .agent-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .agent-status {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 10px;
+            background-color: #ccc;
+        }
+        
+        .agent-status.active {
+            background-color: #ffab2d;
+            animation: pulse 1.5s infinite;
+        }
+        
+        .agent-status.complete {
+            background-color: #4CAF50;
+        }
+        
+        .agent-title {
+            font-weight: bold;
+            margin: 0;
+        }
+        
+        .document-agent .agent-title {
+            color: var(--blue);
+        }
+        
+        .analysis-agent .agent-title {
+            color: var(--green);
+        }
+        
+        .compliance-agent .agent-title {
+            color: var(--cyan);
+        }
+        
+        .agent-description {
+            font-size: 13px;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        /* Agent message styling */
+        .message.document-message {
+            border-left: 4px solid var(--blue) !important;
+            background-color: var(--light-blue) !important;
+        }
+
+        .message.analysis-message {
+            border-left: 4px solid var(--green) !important;
+            background-color: var(--light-green) !important;
+        }
+
+        .message.compliance-message {
+            border-left: 4px solid var(--cyan) !important;
+            background-color: var(--light-cyan) !important;
+        }
+
+        .message-header {
+            font-weight: bold;
+            margin-bottom: 10px;
+            padding: 5px 0;
+        }
+
+        /* Add specific header colors */
+        .document-message .message-header {
+            color: var(--blue);
+        }
+
+        .analysis-message .message-header {
+            color: var(--green);
+        }
+
+        .compliance-message .message-header {
+            color: var(--cyan);
+        }
+
+        /* Agent status animation */
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 171, 45, 0.7); }
+            70% { box-shadow: 0 0 0 6px rgba(255, 171, 45, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 171, 45, 0); }
+        }
+
+        /* Citation styling */
+        .cfr-citation {
+            color: var(--blue);
+            text-decoration: none;
+            border-bottom: 1px dotted var(--blue);
+            font-weight: 500;
+        }
+
+        .cfr-citation:hover {
+            background-color: rgba(27, 103, 178, 0.1);
+            border-bottom: 1px solid var(--blue);
+        }
+
+        /* Chat container */
+        .chat-container { 
+            background: white;
+            border-radius: 8px;
+            padding: 20px; 
+            height: 400px; 
+            overflow-y: auto; 
+            margin-bottom: 16px; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .input-container { 
+            display: flex; 
+            margin-bottom: 12px;
+        }
+        
+        input { 
+            flex-grow: 1; 
+            padding: 12px 16px; 
+            border-radius: 20px;
+            border: 1px solid #ced4da;
+            font-size: 14px;
+        }
+        
+        button { 
+            padding: 10px 20px; 
+            background: var(--blue); 
+            color: white; 
+            border: none; 
+            cursor: pointer; 
+            border-radius: 20px;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        
+        button:hover {
+            background: #155592;
+        }
+        
+        button:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+        }
+        
+        /* Message styling */
+        .user {
+            padding: 12px 16px;
+            border-radius: 18px 18px 0 18px;
+            background-color: var(--blue);
+            color: white;
+            margin-bottom: 16px;
+            margin-left: 20%;
+            max-width: 80%;
+        }
+        
+        .assistant {
+            padding: 12px 16px;
+            border-radius: 18px 18px 18px 0;
+            background-color: #f1f3f5;
+            margin-bottom: 16px;
+            margin-right: 20%;
+            max-width: 80%;
+            white-space: pre-line;
+        }
+        
+        .system {
+            background: #f9f9f9;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 10px;
+            font-size: 14px;
+            color: #666;
+            border-left: 2px solid #ddd;
+        }
+        
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 10px;
+            border-left: 2px solid #ef5350;
+        }
+        
+        .example-questions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .example-question {
+            font-size: 13px;
+            padding: 6px 12px;
+            background: white;
+            border: 1px solid #ced4da;
+            border-radius: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .example-question:hover {
+            background-color: #f8f9fa;
+            border-color: #adb5bd;
+        }
+        
+        /* Report sections */
+        .report-generation, 
+        .report-preview, 
+        .completion-screen {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .footer-note {
+            font-size: 13px;
+            color: #6c757d;
+            text-align: center;
+            margin-top: 30px;
+        }
+        
+        /* Adding a simple spinner animation */
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .spinner {
+            border: 2px solid rgba(0, 0, 0, 0.1);
+            border-top: 2px solid currentColor;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+        
+        .status-bar {
+            font-size: 0.8em;
+            color: #666;
+            margin-top: 5px;
+            text-align: right;
+        }
+        
+        .button-container {
+            text-align: center;
+            margin-top: 16px;
+        }
+        
+        .retry-button {
+            background-color: var(--red);
+            margin-right: 10px;
+        }
+
+        .citation {
+            font-weight: bold;
+            color: #1B67B2;
+            background-color: rgba(27, 103, 178, 0.1);
+            padding: 2px 4px;
+            border-radius: 3px;
+            text-decoration: underline;
+            cursor: pointer;
+        }
+        .citation:hover {
+            background-color: rgba(27, 103, 178, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Curatrak OSHA Compliance Assistant</h1>
+        <p id="subtitle">Multi-Agent System for Nutraceutical Manufacturing Compliance</p>
+    </div>
+    
+    <!-- Initialization Status -->
+    <div id="initialization-status" class="system" style="display: none;">
+        <div style="display: flex; align-items: center;">
+            <div class="spinner" style="margin-right: 10px;"></div>
+            <div>Initializing the agent system. This may take a minute...</div>
+        </div>
+    </div>
+    
+    <!-- Workflow Progress -->
+    <div class="workflow-progress">
+        <div class="workflow-step active" id="step-chat">
+            <div class="step-number">1</div>
+            <div class="step-label">Chat</div>
+        </div>
+        <div class="progress-line" id="line-1-2"></div>
+        <div class="workflow-step" id="step-generate">
+            <div class="step-number">2</div>
+            <div class="step-label">Generate</div>
+        </div>
+        <div class="progress-line" id="line-2-3"></div>
+        <div class="workflow-step" id="step-email">
+            <div class="step-number">3</div>
+            <div class="step-label">Email</div>
+        </div>
+        <div class="progress-line" id="line-3-4"></div>
+        <div class="workflow-step" id="step-complete">
+            <div class="step-number">4</div>
+            <div class="step-label">Complete</div>
+        </div>
+    </div>
+    
+    <!-- Agent Cards -->
+    <div class="agent-container">
+        <div class="agent-card document-agent" id="document-agent-card">
+            <div class="agent-header">
+                <div class="agent-status" id="document-agent-status"></div>
+                <h3 class="agent-title">Document Agent</h3>
+            </div>
+            <p class="agent-description">Retrieves relevant OSHA regulations and standards for nutraceutical manufacturing.</p>
+        </div>
+        
+        <div class="agent-card analysis-agent" id="analysis-agent-card">
+            <div class="agent-header">
+                <div class="agent-status" id="analysis-agent-status"></div>
+                <h3 class="agent-title">Analysis Agent</h3>
+            </div>
+            <p class="agent-description">Interprets regulations specifically for nutraceutical manufacturing context.</p>
+        </div>
+        
+        <div class="agent-card compliance-agent" id="compliance-agent-card">
+            <div class="agent-header">
+                <div class="agent-status" id="compliance-agent-status"></div>
+                <h3 class="agent-title">Compliance Agent</h3>
+            </div>
+            <p class="agent-description">Generates actionable compliance guidance with practical implementation steps.</p>
+        </div>
+    </div>
+
+    <!-- Chat View -->
+    <div id="chat-view">
+        <div class="chat-container" id="chat-container">
+            <div class="system">Welcome! Ask me about OSHA compliance for nutraceutical manufacturing.</div>
+        </div>
+        <div class="input-container">
+            <input type="text" id="user-input" placeholder="Ask about OSHA compliance..." onkeydown="if(event.key==='Enter')sendMessage()">
+            <button id="send-button" onclick="sendMessage()">Send</button>
+        </div>
+        <div class="status-bar" id="status-bar"></div>
+        
+        <div class="example-questions">
+            <p style="width: 100%; margin-bottom: 8px; color: #666; font-size: 14px;">Try asking:</p>
+            <div class="example-question" onclick="handleExampleClick('What PPE is required for handling vitamin powder processing?')">
+                What PPE is required for handling vitamin powder processing?
+            </div>
+            <div class="example-question" onclick="handleExampleClick('What are the emergency shower requirements for our extraction area?')">
+                What are the emergency shower requirements for our extraction area?
+            </div>
+            <div class="example-question" onclick="handleExampleClick('How should we store our herbal extracts safely?')">
+                How should we store our herbal extracts safely?
+            </div>
+        </div>
+    </div>
+    
+    <!-- Report Generation View -->
+    <div id="report-generation-view" style="display: none;">
+        <div class="report-generation">
+            <h3>Generating Compliance Report</h3>
+            
+            <div style="margin-bottom: 16px;">
+                <div style="display: flex; align-items: center; margin-bottom: 16px;">
+                    <div style="width: 36px; height: 36px; background-color: #e6f3ff; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 12px; color: var(--blue);">
+                        <div class="spinner"></div>
+                    </div>
+                    <div>
+                        <div style="font-weight: bold; color: var(--blue);">Document Agent</div>
+                        <div style="font-size: 13px; color: #666;">Retrieving OSHA regulations and standards...</div>
+                    </div>
+                </div>
+                
+                <div style="display: flex; align-items: center; margin-bottom: 16px;">
+                    <div style="width: 36px; height: 36px; background-color: #e7f5e7; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 12px; color: var(--green);">
+                        <div class="spinner"></div>
+                    </div>
+                    <div>
+                        <div style="font-weight: bold; color: var(--green);">Analysis Agent</div>
+                        <div style="font-size: 13px; color: #666;">Interpreting regulations for nutraceutical context...</div>
+                    </div>
+                </div>
+                
+                <div style="display: flex; align-items: center;">
+                    <div style="width: 36px; height: 36px; background-color: #e6f7fa; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 12px; color: var(--cyan);">
+                        <div class="spinner"></div>
+                    </div>
+                    <div>
+                        <div style="font-weight: bold; color: var(--cyan);">Compliance Agent</div>
+                        <div style="font-size: 13px; color: #666;">Generating actionable compliance guidance...</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="width: 100%; height: 6px; background-color: #f1f3f5; border-radius: 3px; margin: 20px 0; overflow: hidden;">
+                <div id="generation-progress" style="height: 100%; background-color: var(--blue); border-radius: 3px; width: 60%;"></div>
+            </div>
+            
+            <p style="color: #6c757d; font-size: 14px; text-align: center;">This may take a few moments...</p>
+        </div>
+    </div>
+    
+    <!-- Report Preview View -->
+    <div id="report-preview-view" style="display: none;">
+        <div class="report-preview">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background-color: #f8f9fa; border-bottom: 1px solid #e9ecef;">
+                <h3 style="font-weight: bold; margin: 0;" id="report-title">OSHA Compliance Report</h3>
+                <button onclick="togglePreview()" style="background: none; border: none; color: var(--blue); cursor: pointer; display: flex; align-items: center; font-size: 14px; padding: 4px 8px;">
+                    <span id="preview-toggle-text">Show Preview</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="preview-toggle-icon" style="margin-left: 4px;">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                </button>
+            </div>
+            
+            <div id="preview-content" style="display: none; max-height: 400px; overflow-y: auto; padding: 20px;">
+                <!-- Report content will be populated here -->
+            </div>
+            
+            <div id="preview-placeholder" style="text-align: center; padding: 40px 20px; color: #adb5bd;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+                <p style="margin-top: 10px;">Click "Show Preview" to view report contents</p>
+            </div>
+        </div>
+        
+        <div style="margin-top: 16px;">
+            <label style="display: block; margin-bottom: 8px; font-weight: 500;">Email this report to:</label>
+            <div style="display: flex;">
+                <input type="email" id="report-email" placeholder="your.email@company.com" style="border-radius: 4px 0 0 4px; flex-grow: 1;">
+                <button id="send-email-button" onclick="sendReport()" style="border-radius: 0 4px 4px 0;">Send Report</button>
+            </div>
+            <div id="email-status"></div>
+        </div>
+        
+        <div style="display: flex; justify-content: space-between; margin-top: 20px;">
+            <button onclick="startNewConversation()" style="background-color: white; color: var(--blue); border: 1px solid var(--blue);">Start New Conversation</button>
+            <button onclick="downloadReport()">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; vertical-align: -3px;">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                Download PDF
+            </button>
+        </div>
+    </div>
+    
+    <!-- Report Delivery Confirmation View -->
+    <div id="report-delivered-view" style="display: none;">
+        <div class="completion-screen">
+            <div style="width: 64px; height: 64px; background-color: #e7f5e7; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; color: #4caf50;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#4caf50" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                </svg>
+            </div>
+            
+            <h2 style="font-size: 24px; font-weight: bold; margin-bottom: 16px; text-align: center;">Report Delivered!</h2>
+            <p style="color: #666; margin-bottom: 24px; text-align: center;">Your OSHA compliance report has been successfully sent to <strong id="delivered-email">example@email.com</strong>.</p>
+            
+            <div style="background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; padding: 20px; text-align: left; margin-bottom: 24px;">
+                <h4 style="color: var(--blue); margin-top: 0; margin-bottom: 12px;">What's included in your report:</h4>
+                <ul style="margin: 0; padding-left: 24px;">
+                    <li style="margin-bottom: 8px;">Detailed regulatory requirements</li>
+                    <li style="margin-bottom: 8px;">Nutraceutical-specific interpretations</li>
+                    <li style="margin-bottom: 8px;">Step-by-step compliance guidance</li>
+                    <li style="margin-bottom: 8px;">Risk assessment information</li>
+                    <li style="margin-bottom: 8px;">Implementation checklists</li>
+                </ul>
+            </div>
+            
+            <button onclick="startNewConversation()" style="margin: 0 auto; display: block;">Start New Conversation</button>
+        </div>
+    </div>
+    
+    <div class="footer-note">
+        Curatrak OSHA Compliance Assistant - A multi-agent system for nutraceutical manufacturing compliance.<br>
+        Powered by Azure AI and Semantic Kernel.
+    </div>
+
+    <script>
+        // Core variables
+        let lastResponse = null;
+        let lastQuery = null;
+        let isProcessing = false;
+        let currentTypingId = null;
+        let isInitialized = false;
+        let currentJobId = null;
+        let statusCheckInterval = null;
+        let currentWorkflowStage = 'chat';
+        let previewVisible = false;
+        let reportData = null;
+        let documentDisplayTime = 0;
+        const MIN_DOCUMENT_DISPLAY_TIME = 1000; // 1 second minimum display time
+        
+
+        // Check initialization status on page load
+        window.addEventListener('load', function() {
+            checkInitializationStatus();
+            updateWorkflowStage('chat');
+        });
+
+        // Check if agents are initialized
+        function checkInitializationStatus() {
+            fetch('/api/initialization-status')
+                .then(response => response.json())
+                .then(data => {
+                    isInitialized = data.initialized;
+                    
+                    if (!isInitialized) {
+                        document.getElementById('initialization-status').style.display = 'block';
+                        document.getElementById('send-button').disabled = true;
+                        document.getElementById('user-input').disabled = true;
+                        
+                        // Check again in 3 seconds
+                        setTimeout(checkInitializationStatus, 3000);
+                    } else {
+                        document.getElementById('initialization-status').style.display = 'none';
+                        document.getElementById('send-button').disabled = false;
+                        document.getElementById('user-input').disabled = false;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking initialization status:', error);
+                    // Retry in 5 seconds
+                    setTimeout(checkInitializationStatus, 5000);
+                });
+        }
+
+        // Add or update a message in the chat
+        function addOrUpdateMessage(message, type, id = null) {
+            // Remove any typing indicator if this is replacing it
+            if (id) {
+                document.querySelectorAll('.assistant-typing').forEach(el => {
+                    if (el.id.includes(id.replace('response', 'typing'))) {
+                        el.remove();
+                    }
+                });
+            }
+            
+            // Format citations if this is an assistant message
+            if (type.includes('assistant') || type.includes('document-message') || 
+                type.includes('analysis-message') || type.includes('compliance-message')) {
+                message = formatCitations(message);
+            }            
+
+            // If ID is provided and element exists, update it
+            if (id && document.getElementById(id)) {
+                const existingElement = document.getElementById(id);
+                existingElement.innerHTML = message;
+                existingElement.className = type;
+                return id;
+            } 
+            // Otherwise, add a new message
+            else {
+                const chatContainer = document.getElementById('chat-container');
+                const messageDiv = document.createElement('div');
+                messageDiv.innerHTML = message;
+                messageDiv.className = type;
+                
+                // Set ID if provided, otherwise generate a new one
+                const messageId = id || 'msg-' + Date.now();
+                messageDiv.id = messageId;
+                
+                // Add agent-specific header styling
+                if (type.includes('document-message') && messageDiv.querySelector('.message-header')) {
+                    messageDiv.querySelector('.message-header').style.color = 'var(--blue)';
+                } else if (type.includes('analysis-message') && messageDiv.querySelector('.message-header')) {
+                    messageDiv.querySelector('.message-header').style.color = 'var(--green)';
+                } else if (type.includes('compliance-message') && messageDiv.querySelector('.message-header')) {
+                    messageDiv.querySelector('.message-header').style.color = 'var(--cyan)';
+                }
+                
+                chatContainer.appendChild(messageDiv);
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+                return messageId;
+            }
+        }
+
+        // Handle example click
+        function handleExampleClick(question) {
+            document.getElementById('user-input').value = question;
+            sendMessage();
+        }
+
+
+        function updateWorkflowStage(stage) {
+            currentWorkflowStage = stage;
+            
+            // Update subtitle
+            if (stage === 'chat') {
+                document.getElementById('subtitle').textContent = 'Multi-Agent System for Nutraceutical Manufacturing Compliance';
+            } else if (stage === 'generate-report') {
+                document.getElementById('subtitle').textContent = 'Generating Comprehensive Compliance Report';
+            } else if (stage === 'report-preview') {
+                document.getElementById('subtitle').textContent = 'Compliance Report Generation and Distribution';
+            } else if (stage === 'report-delivered') {
+                document.getElementById('subtitle').textContent = 'Report Delivery Confirmation';
+            }
+            
+            // Map stage names to corresponding workflow step indices
+            let activeStepIndex;
+            if (stage === 'chat') {
+                activeStepIndex = 0;
+            } else if (stage === 'generate-report' || stage === 'report-preview') {
+                activeStepIndex = 1;
+            } else if (stage === 'report-delivered') {
+                activeStepIndex = 2;
+            } else if (stage.includes('complete')) {
+                activeStepIndex = 3;
+            } else {
+                activeStepIndex = 0;
+            }
+            
+            // Update workflow progress indicators
+            const steps = ['chat', 'generate', 'email', 'complete'];
+            const elements = steps.map(step => document.getElementById(`step-${step}`));
+            
+            // Reset all classes first
+            elements.forEach(el => {
+                if (el) el.classList.remove('active', 'complete');
+            });
+            
+            // Apply appropriate classes
+            for (let i = 0; i < steps.length; i++) {
+                const el = elements[i];
+                if (!el) continue;
+                
+                const lineEl = i < steps.length - 1 ? 
+                    document.getElementById(`line-${i+1}-${i+2}`) : null;
+                
+                if (lineEl) lineEl.classList.remove('active');
+                
+                if (i === activeStepIndex) {
+                    el.classList.add('active');
+                } else if (i < activeStepIndex) {
+                    el.classList.add('complete');
+                    if (lineEl) lineEl.classList.add('active');
+                }
+            }
+            
+            // Show appropriate view
+            document.getElementById('chat-view').style.display = stage === 'chat' ? 'block' : 'none';
+            document.getElementById('report-generation-view').style.display = stage === 'generate-report' ? 'block' : 'none';
+            document.getElementById('report-preview-view').style.display = stage === 'report-preview' ? 'block' : 'none';
+            document.getElementById('report-delivered-view').style.display = stage === 'report-delivered' ? 'block' : 'none';
+        }
+
+        // Update the togglePreview function to properly load content
+        function togglePreview() {
+            previewVisible = !previewVisible;
+            
+            console.log("Toggle preview - visibility:", previewVisible);
+            console.log("Report data:", reportData);
+            
+            const previewContent = document.getElementById('preview-content');
+            const previewPlaceholder = document.getElementById('preview-placeholder');
+            
+            if (previewVisible) {
+                // Force loading of the preview content
+                if (reportData && reportData.html_path) {
+                    console.log("Loading HTML content from:", reportData.html_path);
+                    
+                    // Show loading indicator
+                    previewContent.innerHTML = '<div style="text-align: center; padding: 20px;"><div class="spinner"></div><p>Loading report content...</p></div>';
+                    previewContent.style.display = 'block';
+                    previewPlaceholder.style.display = 'none';
+                    
+                    // Get the path portion only, not the full path
+                    const htmlPathParts = reportData.html_path.split('/');
+                    const htmlFileName = htmlPathParts[htmlPathParts.length - 1];
+                    
+                    console.log("Fetching report HTML:", htmlFileName);
+                    
+                    fetch('/reports/' + htmlFileName)
+                        .then(response => {
+                            console.log("HTML fetch response:", response);
+                            if (!response.ok) {
+                                throw new Error(`Failed to load report: ${response.status} ${response.statusText}`);
+                            }
+                            return response.text();
+                        })
+                        .then(html => {
+                            console.log("HTML content loaded, length:", html.length);
+                            previewContent.innerHTML = html;
+                        })
+                        .catch(error => {
+                            console.error('Error loading report HTML:', error);
+                            previewContent.innerHTML = `
+                                <div class="error" style="padding: 16px; margin: 20px;">
+                                    <h3>Error Loading Report</h3>
+                                    <p>${error.message}</p>
+                                    <p>Please try generating the report again.</p>
+                                </div>
+                            `;
+                        });
+                } else {
+                    // No report data available
+                    previewContent.innerHTML = `
+                        <div style="text-align: center; padding: 40px 20px;">
+                            <h3>No Report Data Available</h3>
+                            <p>The report data is not available. Please try generating the report again.</p>
+                        </div>
+                    `;
+                    previewContent.style.display = 'block';
+                    previewPlaceholder.style.display = 'none';
+                }
+                
+                document.getElementById('preview-toggle-text').textContent = 'Hide Preview';
+                document.getElementById('preview-toggle-icon').style.transform = 'rotate(180deg)';
+            } else {
+                previewContent.style.display = 'none';
+                previewPlaceholder.style.display = 'block';
+                
+                document.getElementById('preview-toggle-text').textContent = 'Show Preview';
+                document.getElementById('preview-toggle-icon').style.transform = 'rotate(0deg)';
+            }
+        }
+
+        // Update UI state based on processing status
+        function updateUIState(processing) {
+            isProcessing = processing;
+            document.getElementById('send-button').disabled = processing;
+            document.getElementById('user-input').disabled = processing;
+            
+            if (processing) {
+                document.getElementById('status-bar').innerText = "Processing query...";
+            } else {
+                document.getElementById('status-bar').innerText = "";
+            }
+        }
+
+        // Add retry button to message
+        function addRetryButton(messageId, jobId) {
+            const messageElement = document.getElementById(messageId);
+            if (!messageElement) return;
+            
+            // Add a button container if it doesn't exist
+            if (!document.getElementById(`retry-container-${jobId}`)) {
+                const buttonContainer = document.createElement('div');
+                buttonContainer.className = 'button-container';
+                buttonContainer.id = `retry-container-${jobId}`;
+                
+                const retryButton = document.createElement('button');
+                retryButton.className = 'retry-button';
+                retryButton.textContent = 'Retry Request';
+                retryButton.onclick = function() {
+                    recoverChatJob(jobId);
+                };
+                
+                const skipButton = document.createElement('button');
+                skipButton.textContent = 'Skip to Compliance';
+                skipButton.onclick = function() {
+                    forceCompliancePhase(jobId);
+                };
+                
+                buttonContainer.appendChild(retryButton);
+                buttonContainer.appendChild(skipButton);
+                messageElement.appendChild(buttonContainer);
+            }
+        }
+
+        // Update agent status visualization
+        function updateAgentStatus(agent, status) {
+            const statusElement = document.getElementById(`${agent}-status`);
+            const cardElement = document.getElementById(`${agent}-card`);
+            
+            // Find elements with correct IDs
+            const correctStatusElement = statusElement || document.getElementById(`${agent}-agent-status`);
+            const correctCardElement = cardElement || document.getElementById(`${agent}-agent-card`);
+            
+            console.log(`Updating agent ${agent} to status: ${status}`);
+            
+            if (!correctStatusElement || !correctCardElement) {
+                console.error(`Element not found for agent: ${agent}`);
+                return;
+            }
+            
+            // Clear all status classes first
+            correctStatusElement.classList.remove('active', 'complete');
+            correctCardElement.classList.remove('active');
+            
+            // Apply appropriate class based on status
+            if (status === 'active') {
+                correctStatusElement.classList.add('active');
+                correctCardElement.classList.add('active');
+            } else if (status === 'complete') {
+                correctStatusElement.classList.add('complete');
+            }
+            
+            // Handle sequential agent status updates
+            if (agent === 'analysis-agent' && status === 'active') {
+                updateAgentStatus('document-agent', 'complete');
+            } else if (agent === 'compliance-agent' && status === 'active') {
+                updateAgentStatus('document-agent', 'complete');
+                updateAgentStatus('analysis-agent', 'complete');
+            }
+        }
+
+        // Reset all agent statuses
+        function resetAgentStatus() {
+            updateAgentStatus('document-agent', 'inactive');
+            updateAgentStatus('analysis-agent', 'inactive');
+            updateAgentStatus('compliance-agent', 'inactive');
+        }
+
+        // Send message to backend
+        function sendMessage() {
+            // Don't allow multiple concurrent requests
+            if (isProcessing || !isInitialized) return;
+            
+            const userInput = document.getElementById('user-input').value.trim();
+            if (!userInput) return;
+            
+            // Add this line here - Log 1
+            console.log("Sending message:", userInput);
+            
+            // Update UI state
+            updateUIState(true);
+            lastQuery = userInput;
+            
+            // Reset agent statuses
+            resetAgentStatus();
+            
+            // Add user message to chat
+            addOrUpdateMessage(userInput, 'user');
+            document.getElementById('user-input').value = '';
+            
+            // Show "typing" indicator
+            currentTypingId = 'typing-' + Date.now();
+            addOrUpdateMessage('Processing your query...', 'assistant', currentTypingId);
+            
+            // Send message to backend
+            fetch('/api/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    message: userInput
+                })
+            })
+            // Modify these two .then blocks - Log 2 and 3
+            .then(response => {
+                console.log("Response from /api/chat:", response);
+                return response.json();
+            })
+            .then(data => {
+                console.log("Parsed data from /api/chat:", data);
+                
+                if (data.success) {
+                    // Store job ID and start checking status
+                    currentJobId = data.job_id;
+                    updateAgentStatus('document-agent', 'active');
+                    checkJobStatus();
+                } else {
+                    // Handle error
+                    addOrUpdateMessage(`Error: ${data.error}`, 'error', currentTypingId);
+                    updateUIState(false);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                addOrUpdateMessage('Error connecting to the server. Please try again.', 'error', currentTypingId);
+                updateUIState(false);
+            });
+        }        
+        
+        function checkJobStatus() {
+            if (!currentJobId) return;
+            
+            console.log("Checking status for job:", currentJobId);
+            
+            // Clear any existing interval
+            if (statusCheckInterval) {
+                clearInterval(statusCheckInterval);
+            }
+            
+            // Track what's been displayed already
+            let documentDisplayed = false;
+            let analysisDisplayed = false;
+            let complianceDisplayed = false;
+            
+            // Track when document was displayed (timestamp)
+            let documentDisplayTime = 0;
+            const MIN_DOCUMENT_DISPLAY_TIME = 5000; // 5 seconds minimum viewing time
+            
+            // Start checking status at regular intervals
+            statusCheckInterval = setInterval(() => {
+                fetch(`/api/chat/status/${currentJobId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log("Job status data:", data);
+                        
+                        // Complete response - show all missing pieces in order
+                        if (data.status === 'complete') {
+                            clearInterval(statusCheckInterval);
+                            statusCheckInterval = null;
+                            
+                            // Update all agent statuses
+                            updateAgentStatus('document-agent', 'complete');
+                            updateAgentStatus('analysis-agent', 'complete');
+                            updateAgentStatus('compliance-agent', 'complete');
+                            
+                            // Remove any typing indicators
+                            document.querySelectorAll('.assistant-typing').forEach(el => el.remove());
+                            
+                            // Extract content
+                            let documentResponse = data.document_response || "";
+                            let analysisResponse = data.analysis_response || "";
+                            let complianceResponse = data.compliance_response || "";
+                            
+                            // If not already shown, show document findings
+                            if (!documentDisplayed && documentResponse) {
+                                const formattedDocResponse = formatCitations(documentResponse);
+                                addOrUpdateMessage(`<div class="message-header">DOCUMENT AGENT FINDINGS:</div>${formattedDocResponse}`, 
+                                            'assistant document-message', 'document-response');
+                                documentDisplayed = true;
+                                documentDisplayTime = Date.now();
+                            }
+                            
+                            // Add a delay before showing analysis
+                            setTimeout(() => {
+                                // If not already shown, show analysis findings
+                                if (!analysisDisplayed && analysisResponse) {
+                                    const formattedAnalysisResponse = formatCitations(analysisResponse);
+                                    addOrUpdateMessage(`<div class="message-header">ANALYSIS AGENT INTERPRETATION:</div>${formattedAnalysisResponse}`, 
+                                                'assistant analysis-message', 'analysis-response');
+                                    analysisDisplayed = true;
+                                }
+                                
+                                // Add another delay before showing compliance
+                                setTimeout(() => {
+                                    // If not already shown, show compliance guidance
+                                    if (!complianceDisplayed && complianceResponse) {
+                                        const formattedComplianceResponse = formatCitations(complianceResponse);
+                                        addOrUpdateMessage(`<div class="message-header">COMPLIANCE AGENT GUIDANCE:</div>${formattedComplianceResponse}
+                                        <div style="margin-top: 16px;">
+                                            <button onclick="generateCompleteReport()" style="background-color: var(--blue);">
+                                                Generate Compliance Report
+                                            </button>
+                                        </div>`, 'assistant compliance-message', 'compliance-response');
+                                        complianceDisplayed = true;
+                                    }
+                                    
+                                    // Add disclaimer if needed
+                                    const disclaimerExists = Array.from(document.querySelectorAll('.system')).some(el => 
+                                        el.textContent.includes('DISCLAIMER'));
+                                    
+                                    if (!disclaimerExists) {
+                                        addOrUpdateMessage("DISCLAIMER: This OSHA compliance information is provided for general guidance only and is not a substitute for professional safety consultation or legal advice.", 'system');
+                                    }
+                                    
+                                    // Reset UI state
+                                    updateUIState(false);
+                                }, 1500); // 1.5 second delay before showing compliance
+                            }, 1500); // 1.5 second delay before showing analysis
+                            
+                            // Store response for report generation
+                            lastResponse = data.response;
+                            currentJobId = null;
+                        }
+                        // Partial response - show each phase as it completes
+                        else if (data.status === 'partial') {
+                            const phase = data.phase || 'unknown';
+                            console.log(`Partial response received, phase: ${phase}`);
+                            
+                            if (phase === 'document') {
+                                // Document phase is active
+                                updateAgentStatus('document-agent', 'active');
+                                updateAgentStatus('analysis-agent', 'inactive');
+                                updateAgentStatus('compliance-agent', 'inactive');
+                                
+                                // Show document response if available but not yet displayed
+                                if (!documentDisplayed && data.document_response) {
+                                    // Remove any document typing indicator
+                                    document.querySelectorAll('.assistant-typing').forEach(el => {
+                                        if (el.id.includes('document-typing')) el.remove();
+                                    });
+                                    
+                                    // Show document findings
+                                    const formattedDocResponse = formatCitations(data.document_response);
+                                    addOrUpdateMessage(`<div class="message-header">DOCUMENT AGENT FINDINGS:</div>${formattedDocResponse}`, 
+                                                'assistant document-message', 'document-response');
+                                    documentDisplayed = true;
+                                    documentDisplayTime = Date.now();
+                                }
+                                // Show typing indicator if document not available yet and no typing indicator exists
+                                else if (!documentDisplayed && !document.querySelector('.assistant-typing[id*="document-typing"]')) {
+                                    const typingId = 'document-typing-' + Date.now();
+                                    addOrUpdateMessage('Retrieving OSHA regulations...', 'assistant-typing', typingId);
+                                }
+                            } 
+                            else if (phase === 'analysis') {
+                                // Only proceed to analysis display if document has been shown AND enough time has passed
+                                const timeElapsed = Date.now() - documentDisplayTime;
+                                
+                                if (documentDisplayed && timeElapsed >= MIN_DOCUMENT_DISPLAY_TIME) {
+                                    // Update agent statuses for analysis phase
+                                    updateAgentStatus('document-agent', 'complete');
+                                    updateAgentStatus('analysis-agent', 'active');
+                                    
+                                    // Show analysis typing indicator if one doesn't already exist
+                                    if (!analysisDisplayed && !document.querySelector('.assistant-typing[id*="analysis-typing"]')) {
+                                        const typingId = 'analysis-typing-' + Date.now();
+                                        addOrUpdateMessage('Analyzing regulations for nutraceutical context...', 'assistant-typing', typingId);
+                                    }
+                                    
+                                    // Display analysis output if it's available but not yet shown
+                                    if (!analysisDisplayed && data.analysis_response) {
+                                        // Remove any analysis typing indicator
+                                        document.querySelectorAll('.assistant-typing').forEach(el => {
+                                            if (el.id.includes('analysis-typing')) el.remove();
+                                        });
+                                        
+                                        // Show analysis findings
+                                        const formattedAnalysisResponse = formatCitations(data.analysis_response);
+                                        addOrUpdateMessage(`<div class="message-header">ANALYSIS AGENT INTERPRETATION:</div>${formattedAnalysisResponse}`, 
+                                                    'assistant analysis-message', 'analysis-response');
+                                        analysisDisplayed = true;
+                                    }
+                                }
+                                // Make sure document is displayed first if we're in analysis phase
+                                else if (!documentDisplayed && data.document_response) {
+                                    // Remove any document typing indicator
+                                    document.querySelectorAll('.assistant-typing').forEach(el => {
+                                        if (el.id.includes('document-typing')) el.remove();
+                                    });
+                                    
+                                    // Show document findings
+                                    const formattedDocResponse = formatCitations(data.document_response);
+                                    addOrUpdateMessage(`<div class="message-header">DOCUMENT AGENT FINDINGS:</div>${formattedDocResponse}`, 
+                                                'assistant document-message', 'document-response');
+                                    documentDisplayed = true;
+                                    documentDisplayTime = Date.now();
+                                }
+                            }
+                            else if (phase === 'compliance') {
+                                // Make sure document and analysis are both displayed
+                                if (!documentDisplayed && data.document_response) {
+                                    const formattedDocResponse = formatCitations(data.document_response);
+                                    addOrUpdateMessage(`<div class="message-header">DOCUMENT AGENT FINDINGS:</div>${formattedDocResponse}`, 
+                                                'assistant document-message', 'document-response');
+                                    documentDisplayed = true;
+                                }
+                                
+                                if (documentDisplayed && !analysisDisplayed && data.analysis_response) {
+                                    const formattedAnalysisResponse = formatCitations(data.analysis_response);
+                                    addOrUpdateMessage(`<div class="message-header">ANALYSIS AGENT INTERPRETATION:</div>${formattedAnalysisResponse}`, 
+                                                'assistant analysis-message', 'analysis-response');
+                                    analysisDisplayed = true;
+                                }
+
+                                // Only proceed to compliance if both document and analysis are displayed
+                                if (documentDisplayed && analysisDisplayed) {
+                                    // Update agent statuses for compliance phase
+                                    updateAgentStatus('document-agent', 'complete');
+                                    updateAgentStatus('analysis-agent', 'complete');
+                                    updateAgentStatus('compliance-agent', 'active');
+                                    
+                                    // Show compliance typing indicator if not already shown and doesn't already exist
+                                    if (!complianceDisplayed && !document.querySelector('.assistant-typing[id*="compliance-typing"]')) {
+                                        const typingId = 'compliance-typing-' + Date.now();
+                                        addOrUpdateMessage('Generating actionable compliance guidance...', 'assistant-typing', typingId);
+                                    }
+                                }
+                            }
+                        }
+                        // Handle error cases
+                        else if (data.status === 'error') {
+                            clearInterval(statusCheckInterval);
+                            statusCheckInterval = null;
+                            
+                            // Show error message
+                            addOrUpdateMessage(`Error: ${data.error}`, 'error', 'error-message');
+                            addRetryButton('error-message', currentJobId);
+                            
+                            // Reset UI state
+                            updateUIState(false);
+                        } 
+                        else if (data.status === 'not_found') {
+                            clearInterval(statusCheckInterval);
+                            statusCheckInterval = null;
+                            
+                            // Show error message
+                            addOrUpdateMessage('Error: The processing job was not found. Please try again.', 'error', 'error-message');
+                            
+                            // Reset UI state
+                            updateUIState(false);
+                            currentJobId = null;
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error checking job status:', error);
+                        
+                        // Reduce polling frequency on network error
+                        if (statusCheckInterval) {
+                            clearInterval(statusCheckInterval);
+                            statusCheckInterval = setInterval(checkJobStatus, 5000);
+                        }
+                    });
+            }, 2000);
+        }
+
+        // Recover a hanging job
+        function recoverChatJob(jobId) {
+            fetch('/api/chat/recover', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    job_id: jobId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update message to show recovery attempt
+                    addOrUpdateMessage('Attempting to recover the request...', 'system');
+                    
+                    // Remove the retry button container
+                    const buttonContainer = document.getElementById(`retry-container-${jobId}`);
+                    if (buttonContainer) {
+                        buttonContainer.remove();
+                    }
+                    
+                    // Update processing state and job ID
+                    currentJobId = jobId;
+                    updateUIState(true);
+                    
+                    // Start checking status again
+                    checkJobStatus();
+                } else {
+                    addOrUpdateMessage(`Failed to recover: ${data.error}`, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error recovering job:', error);
+                addOrUpdateMessage('Error connecting to the server. Please try again.', 'error');
+            });
+        }
+        
+        // Force compliance phase for a job
+        function forceCompliancePhase(jobId) {
+            fetch('/api/chat/recover', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    job_id: jobId,
+                    force_phase: 'compliance'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update message to show skipping to compliance
+                    addOrUpdateMessage('Skipping to compliance guidance...', 'system');
+                    
+                    // Remove the retry button container
+                    const buttonContainer = document.getElementById(`retry-container-${jobId}`);
+                    if (buttonContainer) {
+                        buttonContainer.remove();
+                    }
+                    
+                    // Update processing state and job ID
+                    currentJobId = jobId;
+                    updateUIState(true);
+                    updateAgentStatus('document-agent', 'complete');
+                    updateAgentStatus('analysis-agent', 'complete');
+                    updateAgentStatus('compliance-agent', 'active');
+                    
+                    // Start checking status again
+                    checkJobStatus();
+                } else {
+                    addOrUpdateMessage(`Failed to skip: ${data.error}`, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error forcing compliance phase:', error);
+                addOrUpdateMessage('Error connecting to the server. Please try again.', 'error');
+            });
+        }     
+
+        function generateCompleteReport() {
+            // Extract topic from last query
+            let reportTopic = 'OSHA Compliance';
+            
+            if (lastQuery) {
+                if (lastQuery.toLowerCase().includes('ppe') || lastQuery.toLowerCase().includes('vitamin powder')) {
+                    reportTopic = 'PPE Requirements for Vitamin Powder Processing';
+                } else if (lastQuery.toLowerCase().includes('emergency shower') || lastQuery.toLowerCase().includes('extraction area')) {
+                    reportTopic = 'Emergency Shower Requirements for Extraction Areas';
+                } else if (lastQuery.toLowerCase().includes('store') || lastQuery.toLowerCase().includes('herbal extract')) {
+                    reportTopic = 'Safe Storage of Herbal Extracts';
+                } else {
+                    // Use first few words of query as topic
+                    reportTopic = lastQuery.split(' ').slice(0, 5).join(' ');
+                }
+            }
+            
+            console.log("Generating report for topic:", reportTopic);
+            
+            // Update the workflow stage
+            updateWorkflowStage('generate-report');
+            
+            // Update progress bar animation
+            const progressBar = document.getElementById('generation-progress');
+            let width = 20;
+            const progressInterval = setInterval(() => {
+                width += 1;
+                progressBar.style.width = width + '%';
+                
+                // Cap at 90% until we get a response
+                if (width >= 90) {
+                    clearInterval(progressInterval);
+                }
+            }, 30);
+            
+            // Create a clean request body without lastResponse
+            const requestBody = {
+                topic: reportTopic,
+                query: lastQuery || ""
+            };
+            
+            // Generate report with backend
+            fetch('/api/generate-report', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestBody)
+            })
+            .then(response => {
+                console.log("Report generation response status:", response.status);
+                return response.json();
+            })
+            .then(data => {
+                console.log("Report generation data:", data);
+                
+                // Complete the progress bar
+                clearInterval(progressInterval);
+                progressBar.style.width = '100%';
+                
+                if (data.success && data.report) {
+                    // Store report data
+                    reportData = data.report;
+                    console.log("Report data stored:", reportData);
+                    
+                    // Set report title
+                    document.getElementById('report-title').textContent = 'OSHA Compliance Report: ' + reportTopic;
+                    
+                    // Clear preview content to ensure it will be reloaded
+                    document.getElementById('preview-content').innerHTML = '';
+                    
+                    // Move to report preview stage
+                    setTimeout(() => {
+                        updateWorkflowStage('report-preview');
+                    }, 500);
+                } else {
+                    // Handle error
+                    console.error("Error generating report:", data.error || "Unknown error");
+                    addOrUpdateMessage(`Error generating report: ${data.error || "Unknown error"}`, 'error');
+                    updateWorkflowStage('chat');
+                }
+            })
+            .catch(error => {
+                clearInterval(progressInterval);
+                console.error('Error generating report:', error);
+                addOrUpdateMessage('Error connecting to the server. Please try again.', 'error');
+                updateWorkflowStage('chat');
+            });
+        }
+
+        function togglePreview() {
+            previewVisible = !previewVisible;
+            
+            console.log("Toggle preview - visibility:", previewVisible);
+            console.log("Report data:", reportData);
+            
+            const previewContent = document.getElementById('preview-content');
+            const previewPlaceholder = document.getElementById('preview-placeholder');
+            
+            if (previewVisible) {
+                // Show loading state
+                previewContent.innerHTML = '<div style="text-align: center; padding: 20px;"><div class="spinner"></div><p>Loading report content...</p></div>';
+                previewContent.style.display = 'block';
+                previewPlaceholder.style.display = 'none';
+                
+                if (reportData && reportData.html_path) {
+                    // Extract just the filename from the path
+                    let htmlFile = reportData.html_path.split('/').pop();
+                    
+                    // If the path uses backslashes (Windows), handle that too
+                    if (htmlFile.includes('\\')) {
+                        htmlFile = htmlFile.split('\\').pop();
+                    }
+                    
+                    // Remove any URL encoding
+                    if (htmlFile.includes('%')) {
+                        try {
+                            htmlFile = decodeURIComponent(htmlFile);
+                        } catch (e) {
+                            console.error("Error decoding URL:", e);
+                        }
+                    }
+                    
+                    console.log("Fetching report file:", htmlFile);
+                    
+                    // Fetch the file
+                    fetch('/reports/' + htmlFile)
+                        .then(response => {
+                            console.log("Report fetch response:", response);
+                            if (!response.ok) {
+                                throw new Error(`Failed to load report: ${response.status} ${response.statusText}`);
+                            }
+                            return response.text();
+                        })
+                        .then(html => {
+                            console.log("HTML content loaded, length:", html.length);
+                            previewContent.innerHTML = html;
+                        })
+                        .catch(error => {
+                            console.error('Error loading report HTML:', error);
+                            previewContent.innerHTML = `
+                                <div class="error" style="padding: 16px; margin: 20px;">
+                                    <h3>Error Loading Report</h3>
+                                    <p>${error.message}</p>
+                                    <p>Please try generating the report again.</p>
+                                </div>
+                            `;
+                        });
+                } else {
+                    previewContent.innerHTML = `
+                        <div style="text-align: center; padding: 40px 20px;">
+                            <h3>No Report Data Available</h3>
+                            <p>The report data is not available. Please try generating the report again.</p>
+                        </div>
+                    `;
+                }
+                
+                document.getElementById('preview-toggle-text').textContent = 'Hide Preview';
+                document.getElementById('preview-toggle-icon').style.transform = 'rotate(180deg)';
+            } else {
+                previewContent.style.display = 'none';
+                previewPlaceholder.style.display = 'block';
+                
+                document.getElementById('preview-toggle-text').textContent = 'Show Preview';
+                document.getElementById('preview-toggle-icon').style.transform = 'rotate(0deg)';
+            }
+        }     
+        
+        function formatCitations(text) {
+            if (!text) return '';
+            
+            try {
+                // First check if the text is already JSON
+                if (typeof text === 'object') {
+                    // If it's already a parsed object
+                    if (text.content) {
+                        let content = text.content;
+                        
+                        // NEW: Remove any markdown formatting
+                        content = content.replace(/\*\*(.*?)\*\*/g, '$1');
+                        
+                        // Format any citations in the object
+                        if (text.citations) {
+                            const citations = Array.isArray(text.citations) ? text.citations : [text.citations];
+                            citations.forEach(citation => {
+                                if (citation && citation.text && citation.url) {
+                                    const linkHtml = `<a href="${citation.url}" class="citation" target="_blank">${citation.text}</a>`;
+                                    content = content.replace(citation.text, linkHtml);
+                                }
+                            });
+                        }
+                        return content.replace(/\\n/g, '<br>').replace(/\n/g, '<br>');
+                    }
+                }
+                
+                // If it's a string that appears to contain malformed JSON content/citations structure
+                if (typeof text === 'string') {
+                    // NEW: Remove any markdown formatting
+                    text = text.replace(/\*\*(.*?)\*\*/g, '$1');
+                    
+                    // First attempt to fix and parse any malformed JSON
+                    if (text.includes("{'content") || text.includes("{content") || text.includes("citations")) {
+                        console.log("Detected potential malformed JSON, attempting to fix");
+                        
+                        // Extract content part if it exists with this pattern
+                        let contentMatch = text.match(/['"]{0,1}content['"]{0,1}\s*:\s*['"]{0,1}(.*?)(['"]{0,1}\s*,\s*['"]{0,1}citations|$)/s);
+                        let content = contentMatch ? contentMatch[1] : text;
+                        
+                        // NEW: Remove any markdown formatting in the content
+                        content = content.replace(/\*\*(.*?)\*\*/g, '$1');
+                        
+                        // Look for citation data
+                        let citationsData = [];
+                        
+                        // Try to extract citations with various patterns
+                        const citationPatterns = [
+                            // Pattern 1: Structured citation with text and URL
+                            /'citations'\s*:\s*\{\s*'text'\s*:\s*'([^']*)'\s*,\s*'(?:type|url)'\s*:\s*'([^']*)'/g,
+                            // Pattern 2: Alternative quotation style
+                            /"citations"\s*:\s*\{\s*"text"\s*:\s*"([^"]*)"\s*,\s*"(?:type|url)"\s*:\s*"([^"]*)"/g,
+                            // Pattern 3: CFR citations (29 CFR X.XXX)
+                            /(29 CFR \d+\.\d+)/g
+                        ];
+                        
+                        // Try each pattern
+                        for (const pattern of citationPatterns) {
+                            const matches = [...text.matchAll(pattern)];
+                            if (matches.length > 0) {
+                                for (const match of matches) {
+                                    if (pattern.toString().includes('CFR')) {
+                                        // Handle CFR pattern
+                                        const cfr = match[1].replace('29 CFR ', '');
+                                        citationsData.push({
+                                            text: match[1],
+                                            url: `https://www.osha.gov/laws-regs/regulations/standardnumber/1910/${cfr}`
+                                        });
+                                    } else {
+                                        // Handle structured citation patterns
+                                        citationsData.push({
+                                            text: match[1],
+                                            url: match[2]
+                                        });
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // Apply citations to content
+                        let processedText = content;
+                        citationsData.forEach(citation => {
+                            const linkHtml = `<a href="${citation.url}" class="citation" target="_blank">${citation.text}</a>`;
+                            processedText = processedText.replace(citation.text, linkHtml);
+                        });
+                        
+                        // Clean up any remaining JSON syntax
+                        processedText = processedText
+                            .replace(/['"]\s*:\s*['"]|['"]\s*,\s*['"]/g, '')
+                            .replace(/\{'/g, '')
+                            .replace(/'\}/g, '')
+                            .replace(/\\n/g, '<br>')
+                            .replace(/\n/g, '<br>');
+                        
+                        return processedText;
+                    }
+                    
+                    // Standard CFR pattern fallback
+                    const cfr_pattern = /(29 CFR \d+\.\d+)/g;
+                    return text.replace(cfr_pattern, (match) => {
+                        const cfr = match.replace('29 CFR ', '');
+                        const url = `https://www.osha.gov/laws-regs/regulations/standardnumber/1910/${cfr}`;
+                        return `<a href="${url}" class="citation" target="_blank">${match}</a>`;
+                    }).replace(/\\n/g, '<br>').replace(/\n/g, '<br>');
+                }
+            } catch (e) {
+                console.error('Error in formatCitations:', e);
+                // Emergency fallback - just return the text with newlines converted
+                // NEW: Also remove markdown formatting in the fallback case
+                return text.replace(/\*\*(.*?)\*\*/g, '$1').replace(/\\n/g, '<br>').replace(/\n/g, '<br>');
+            }
+            
+            // If all else fails, return the text as is with newlines converted
+            // NEW: Also remove markdown formatting here
+            return text.replace(/\*\*(.*?)\*\*/g, '$1').replace(/\\n/g, '<br>').replace(/\n/g, '<br>');
+        }
+
+        // Send report via email
+        function sendReport() {
+            const emailInput = document.getElementById('report-email');
+            const email = emailInput.value.trim();
+            
+            if (!email) {
+                document.getElementById('email-status').innerHTML = '<div class="error" style="padding: 8px 12px; margin-top: 8px;">Please enter an email address</div>';
+                return;
+            }
+            
+            // Email validation
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                document.getElementById('email-status').innerHTML = '<div class="error" style="padding: 8px 12px; margin-top: 8px;">Please enter a valid email address</div>';
+                return;
+            }
+            
+            // Show sending indicator
+            const sendButton = document.getElementById('send-email-button');
+            sendButton.innerHTML = "Sending...";
+            sendButton.disabled = true;
+            
+            // Store the email for the confirmation page
+            document.getElementById('delivered-email').textContent = email;
+            
+            // Get the topic from the report title
+            const reportTitle = document.getElementById('report-title').textContent;
+            const topic = reportTitle.replace('OSHA Compliance Report: ', '');
+            
+            // Send email via backend
+            fetch('/api/generate-report', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    topic: topic,
+                    query: lastQuery,
+                    last_response: lastResponse,
+                    email_to: email
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update button to show success
+                    sendButton.innerHTML = "Sent!";
+                    sendButton.style.backgroundColor = '#4caf50';
+                    
+                    // Move to the delivered view after a delay
+                    setTimeout(() => {
+                        updateWorkflowStage('report-delivered');
+                    }, 1500);
+                } else {
+                    sendButton.disabled = false;
+                    sendButton.innerHTML = "Send Report";
+                    document.getElementById('email-status').innerHTML = `<div class="error" style="padding: 8px 12px; margin-top: 8px;">Error: ${data.error}</div>`;
+                }
+            })
+            .catch(error => {
+                console.error('Error sending email:', error);
+                sendButton.disabled = false;
+                sendButton.innerHTML = "Send Report";
+                document.getElementById('email-status').innerHTML = '<div class="error" style="padding: 8px 12px; margin-top: 8px;">Error connecting to the server. Please try again.</div>';
+            });
+        }
+
+        // Download report as PDF
+        function downloadReport() {
+            if (reportData && reportData.pdf_path) {
+                // Open PDF in new tab
+                window.open('/reports/' + reportData.pdf_path.split('/').pop(), '_blank');
+            } else {
+                alert("Error: PDF report is not available.");
+            }
+        }
+
+        // Start a new conversation
+        function startNewConversation() {
+            // Reset state
+            lastResponse = null;
+            lastQuery = null;
+            currentJobId = null;
+            reportData = null;
+            previewVisible = false;
+            
+            // Clear any ongoing status checks
+            if (statusCheckInterval) {
+                clearInterval(statusCheckInterval);
+                statusCheckInterval = null;
+            }
+            
+            // Clear chat
+            const chatContainer = document.getElementById('chat-container');
+            chatContainer.innerHTML = '<div class="system">Welcome! Ask me about OSHA compliance for nutraceutical manufacturing.</div>';
+            
+            // Reset UI
+            document.getElementById('user-input').value = '';
+            document.getElementById('report-email').value = '';
+            document.getElementById('email-status').innerHTML = '';
+            updateUIState(false);
+            resetAgentStatus();
+            
+            // Update workflow stage
+            updateWorkflowStage('chat');
+        }
+    </script>
+</body>
+</html>
