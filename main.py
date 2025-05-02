@@ -7,15 +7,19 @@ import uuid
 import time
 import traceback
 import re
-from datetime import datetime  # Add this import
+from datetime import datetime
 from flask import Flask, render_template, request, jsonify, send_from_directory
+from dotenv import load_dotenv
 
 # Import the AgentManager
 from agents.agent_manager import AgentManager
 
-# Set environment variables
-os.environ["AZURE_AI_AGENT_PROJECT_CONNECTION_STRING"] = "swedencentral.api.azureml.ms;b383d2e9-ed64-4dcd-93d3-e7352ddd7091;jamesaicompletion;james-5087"
-os.environ["AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME"] = "gpt-4o"
+# Load environment variables
+load_dotenv()
+
+# Use environment variables instead of hardcoded values
+# Default to "gpt-4o" if not specified in environment variables
+model_deployment = os.getenv("AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME", "gpt-4o")
 
 # Add this helper function at the top of your file after the imports
 
